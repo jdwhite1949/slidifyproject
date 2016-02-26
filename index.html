@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Economic Indicator Shiny App</title>
+  <meta charset="utf-8">
+  <meta name="description" content="Economic Indicator Shiny App">
+  <meta name="author" content="Jim White">
+  <meta name="generator" content="slidify" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta http-equiv="X-UA-Compatible" content="chrome=1">
+  <link rel="stylesheet" href="libraries/frameworks/io2012/css/default.css" media="all" >
+  <link rel="stylesheet" href="libraries/frameworks/io2012/css/phone.css" 
+    media="only screen and (max-device-width: 480px)" >
+  <link rel="stylesheet" href="libraries/frameworks/io2012/css/slidify.css" >
+  <link rel="stylesheet" href="libraries/highlighters/highlight.js/css/tomorrow.css" />
+  <base target="_blank"> <!-- This amazingness opens all links in a new tab. -->  <link rel=stylesheet href="./assets/css/ribbons.css"></link>
+
+  
+  <!-- Grab CDN jQuery, fall back to local if offline -->
+  <script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.7.min.js"></script>
+  <script>window.jQuery || document.write('<script src="libraries/widgets/quiz/js/jquery.js"><\/script>')</script> 
+  <script data-main="libraries/frameworks/io2012/js/slides" 
+    src="libraries/frameworks/io2012/js/require-1.0.8.min.js">
+  </script>
+  
+  
+
+</head>
+<body style="opacity: 0">
+  <slides class="layout-widescreen">
+    
+    <!-- LOGO SLIDE -->
+        <slide class="title-slide segue nobackground">
+  <hgroup class="auto-fadein">
+    <h1>Economic Indicator Shiny App</h1>
+    <h2>10 Year Review and 12 Month Forecast</h2>
+    <p>Jim White<br/></p>
+  </hgroup>
+  <article></article>  
+</slide>
+    
+
+    <!-- SLIDES -->
+    <slide class="" id="slide-1" style="background:;">
+  <hgroup>
+    <h2>Economic Indicators</h2>
+  </hgroup>
+  <article data-timings="">
+    <ol>
+<li>Currently the Federal Reserve has over 382,000 data sets of time series data.</li>
+<li>The data can be searched on the FRED website or can be downloaded via an API that is provided by the Federal Reserve Bank of St. Louis. Links are provided below regarding the API and FRED's online data resources.</li>
+<li>Understanding data trends related to key economic indicators is important for business planning.</li>
+<li>The purpose of this presentation and the accompanying shiny app is to demonstrate how this data may be retrieved and used to create charts and tables.</li>
+<li>The economic indicators referenced in the shiny app are as follows: Unemployment Rate, Consumer Price Index (CPI) - Urban, Disposable Personal Income, Personal Savings, and Consumer Sentiment.</li>
+</ol>
+
+<p>Links: <a href="https://research.stlouisfed.org/fred2/">FRED&#39;s Economic Data</a>, <a href="https://research.stlouisfed.org/docs/api/fred/">FRED&#39;s API</a><br/>
+<span style="font-size:10pt; font-style: italic;">Using the API requires the acquisition of an API key - explained under General Documentation of the API website.</span></p>
+
+<p>Link to App: <a href="https://jdwhite1949.shinyapps.io/Economic_Indicators/">Economic Indicator App</a></p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="class" id="id" style="background:;">
+  <hgroup>
+    <h2>Working with FRED Data</h2>
+  </hgroup>
+  <article data-timings="">
+    <ol start="6">
+<li>From the website, data can be downloaded in Excel, space delimited, or comma separated, which may be easier to load into R, however, collecting data this way a manual process.</li>
+<li>The process can be automated using the API, but the data format that is presented is either XML or json, which requires some understanding of how to process these formats into a useable form. The Economic Indicator shiny app makes this process easy.</li>
+</ol>
+
+<p>For example here is a sample (one observation) of the data returned from FRED:</p>
+
+<pre><code class="r">library(XML)
+load(&quot;freddata.RData&quot;)
+fred.xml.doc &lt;- xmlTreeParse(fred.data)
+fred.xml.doc$doc$children$observations[[1]]
+</code></pre>
+
+<pre><code>## &lt;observation realtime_start=&quot;2016-02-26&quot; realtime_end=&quot;2016-02-26&quot; date=&quot;1948-01-01&quot; value=&quot;3.4&quot;/&gt;
+</code></pre>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="class" id="id" style="background:;">
+  <hgroup>
+    <h2>Working with FRED Data (cont)</h2>
+  </hgroup>
+  <article data-timings="">
+    <ol start="8">
+<li>The Economic Indicator shiny app pulls all of the "date" and "value" attributes from each of the observations and places them in a dataframe which allows for easier data analysis.</li>
+<li>The user can input which economic indicator they wish to view by using the drop down box located in the left panel of the user interface. The selection device contains a description of the indicator. After makind a selection, the user must click the submit button in order to activate the data request.</li>
+<li>Since the data series request is in an abbreviated form (e.g., UNRATE for Unemploment Rate) a csv file was created that contains these abbreviations. The r code then accesses the csv file, looks up the appropriate abbreviation for the "series id" and adds it to the URL request. For example, when the user selects the value "Unemploment Rate" the value "UNRATE" is returned:</li>
+</ol>
+
+<pre><code class="r">FedId &lt;- read.csv(&quot;FREDID.csv&quot;, header = TRUE, stringsAsFactors = FALSE)
+sel &lt;- &quot;Unemployment Rate&quot; # this actuall would come from the user object
+selection &lt;- FedId[which(FedId$selBoxValue==sel), 2] 
+selection # the value of selection is then passed to a function that retrieves the data.
+</code></pre>
+
+<pre><code>## [1] &quot;UNRATE&quot;
+</code></pre>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="class" id="id" style="background:;">
+  <hgroup>
+    <h2>Working with FRED Data (cont)</h2>
+  </hgroup>
+  <article data-timings="">
+    <p><ol start="11">
+<li>The advantage of having the indicator series id in a csv file is that it can be updated without changing any of the r code.</li>
+<li>The series id is fed to a separate function (get.data) located in the server.R file. Data is downloaded, parsed, and put into a data frame format for easier analysis. The data is then converted to a time series object which can be used for forecasting and creating a plot. The code is below and the plot example is on next slide.</li></p>
+
+<pre><code class="r">data.ts &lt;- ts(ts.values, frequency = 12, start = c(2006, 1))
+data.forecast &lt;&lt;- forecast(data.ts, 12) # data is forecast 12 months into future
+p &lt;- plot(data.forecast, main=&quot;10 Year Results &amp; 12 Month Forecast&quot;, xlab=&quot;Years&quot;,
+              ylab=&quot;Economic Indicator Units&quot;)
+</code></pre>
+
+<p><li>Finally a table of forecast values are created using a user-defined function (get.table.data). Here is an example of the R code for generating the plot:</li>
+<ol></p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="class" id="id" style="background:;">
+  <hgroup>
+    <h2>Plot Example</h2>
+  </hgroup>
+  <article data-timings="">
+    <p>Plot output for Economic Indicator app:
+<img src="assets/fig/unnamed-chunk-5-1.png" title="plot of chunk unnamed-chunk-5" alt="plot of chunk unnamed-chunk-5" style="display: block; margin: auto auto auto 0;" />
+The forecast are the blue line and are done via exponential smoothing. The gray &#39;fans&#39; represent the 80 and 90% confidence intervals.</p>
+
+<p><strong>Conclusion:</strong> The Economic Indicator App is a demonstration of both the power of R and the availability of economic data that can help managers make better decisions. </p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+    <slide class="backdrop"></slide>
+  </slides>
+  <div class="pagination pagination-small" id='io2012-ptoc' style="display:none;">
+    <ul>
+      <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=1 title='Economic Indicators'>
+         1
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=2 title='Working with FRED Data'>
+         2
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=3 title='Working with FRED Data (cont)'>
+         3
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=4 title='Working with FRED Data (cont)'>
+         4
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=5 title='Plot Example'>
+         5
+      </a>
+    </li>
+  </ul>
+  </div>  <!--[if IE]>
+    <script 
+      src="http://ajax.googleapis.com/ajax/libs/chrome-frame/1/CFInstall.min.js">  
+    </script>
+    <script>CFInstall.check({mode: 'overlay'});</script>
+  <![endif]-->
+</body>
+  <!-- Load Javascripts for Widgets -->
+  
+  <!-- LOAD HIGHLIGHTER JS FILES -->
+  <script src="libraries/highlighters/highlight.js/highlight.pack.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+  <!-- DONE LOADING HIGHLIGHTER JS FILES -->
+   
+  </html>
